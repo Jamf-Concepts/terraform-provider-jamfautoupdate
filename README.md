@@ -114,3 +114,11 @@ terraform init
 ## Provider Configuration Reference and Example Usage
 
 Refer to [this documentation](./docs).
+
+## Included components
+
+The following third party acknowledgements and licenses are incorporated by reference:
+
+* [Terraform Plugin Framework](https://github.com/hashicorp/terraform-plugin-framework) ([MPL](https://github.com/hashicorp/terraform-plugin-framework?tab=MPL-2.0-1-ov-file))
+* [Terraform Plugin Log](https://github.com/hashicorp/terraform-plugin-log) ([MPL](https://github.com/hashicorp/terraform-plugin-log?tab=MPL-2.0-1-ov-file))
+* [resize](https://github.com/nfnt/resize) ([ISC License](https://github.com/nfnt/resize/blob/master/LICENSE))
