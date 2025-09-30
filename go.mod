@@ -3,7 +3,7 @@ module github.com/Jamf-Concepts/terraform-provider-jamfautoupdate
 go 1.24.5
 
 require (
-	github.com/hashicorp/terraform-plugin-framework v1.16.0
+	github.com/hashicorp/terraform-plugin-framework v1.16.1
 	github.com/nfnt/resize v0.0.0-20180221191011-83c6a9932646
 )
 
