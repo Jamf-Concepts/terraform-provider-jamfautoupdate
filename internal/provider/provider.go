@@ -94,6 +94,8 @@ func (p *JamfAutoUpdateProvider) Configure(ctx context.Context, req provider.Con
 		clientObj = client.NewClient("", definitionsFile)
 	}
 
+	clientObj.SetLogger(NewTerraformLogger())
+
 	p.client = clientObj
 	resp.DataSourceData = clientObj
 	resp.ResourceData = clientObj

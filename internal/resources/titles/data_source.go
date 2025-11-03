@@ -15,6 +15,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/datasource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/types"
+	"github.com/hashicorp/terraform-plugin-log/tflog"
 	"golang.org/x/image/draw"
 )
 
@@ -259,6 +260,8 @@ func (d *TitlesDataSource) Read(ctx context.Context, req datasource.ReadRequest,
 		}
 		data.Titles = append(data.Titles, titleModel)
 	}
+
+	tflog.Debug(ctx, fmt.Sprintf("Fetched %d titles from Jamf Auto Update API", len(data.Titles)))
 
 	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
 }

@@ -3,19 +3,29 @@
 package client
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
 	"os"
 	"strings"
 )
+
+// Logger is an interface for logging HTTP requests and responses
+type Logger interface {
+	LogRequest(ctx context.Context, method, url string, body []byte)
+	LogResponse(ctx context.Context, statusCode int, headers http.Header, body []byte)
+	LogAuth(ctx context.Context, message string, fields map[string]interface{})
+}
 
 // Client is a Jamf Auto Update API client.
 type Client struct {
 	baseURL         string
 	definitionsFile string
 	httpClient      *http.Client
+	logger          Logger
 }
 
 // Title represents a title retrieved from the Jamf Auto Update API.
@@ -69,11 +79,16 @@ func NewClient(baseURL string, definitionsFile string) *Client {
 	}
 }
 
+// SetLogger sets the logger for the client
+func (c *Client) SetLogger(logger Logger) {
+	c.logger = logger
+}
+
 // GetTitles retrieves titles from the API or file. If titleNames is empty, it returns all titles.
 // If titleNames contains one or more names, it returns data for those specific titles.
 func (c *Client) GetTitles(ctx context.Context, titleNames ...string) ([]Title, error) {
 	if c.definitionsFile != "" {
-		return c.getTitlesFromFile(titleNames...)
+		return c.getTitlesFromFile(ctx, titleNames...)
 	}
 
 	url := c.baseURL
@@ -86,15 +101,34 @@ func (c *Client) GetTitles(ctx context.Context, titleNames ...string) ([]Title, 
 		return nil, fmt.Errorf("error creating request: %w", err)
 	}
 
+	if c.logger != nil {
+		c.logger.LogRequest(ctx, req.Method, req.URL.String(), nil)
+	}
+
 	resp, err := c.httpClient.Do(req)
 	if err != nil {
 		return nil, fmt.Errorf("error making request: %w", err)
 	}
+
+	if c.logger != nil {
+		c.logHTTPResponse(ctx, resp)
+	}
+
 	defer func() {
 		if cerr := resp.Body.Close(); cerr != nil {
-			fmt.Printf("warning: failed to close response body: %v\n", cerr)
+			if c.logger != nil {
+				c.logger.LogAuth(ctx, "Failed to close response body", map[string]interface{}{
+					"error": cerr.Error(),
+				})
+			} else {
+				fmt.Printf("warning: failed to close response body: %v\n", cerr)
+			}
 		}
 	}()
+
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("API request failed with status code: %d", resp.StatusCode)
+	}
 
 	var titles []Title
 	if err := json.NewDecoder(resp.Body).Decode(&titles); err != nil {
@@ -110,15 +144,56 @@ func (c *Client) GetTitles(ctx context.Context, titleNames ...string) ([]Title, 
 	return titles, nil
 }
 
+// logHTTPResponse logs the HTTP response details using the client's logger
+func (c *Client) logHTTPResponse(ctx context.Context, resp *http.Response) {
+	if resp.Body == nil {
+		c.logger.LogResponse(ctx, resp.StatusCode, resp.Header, nil)
+		return
+	}
+
+	responseBody, err := io.ReadAll(resp.Body)
+	if err != nil {
+		c.logger.LogAuth(ctx, "Failed to read response body", map[string]interface{}{
+			"error": err.Error(),
+		})
+		return
+	}
+
+	if err := resp.Body.Close(); err != nil {
+		c.logger.LogAuth(ctx, "Failed to close response body", map[string]interface{}{
+			"error": err.Error(),
+		})
+	}
+
+	c.logger.LogResponse(ctx, resp.StatusCode, resp.Header, responseBody)
+	resp.Body = io.NopCloser(bytes.NewBuffer(responseBody))
+}
+
 // getTitlesFromFile retrieves titles from a local JSON file.
-func (c *Client) getTitlesFromFile(titleNames ...string) ([]Title, error) {
+func (c *Client) getTitlesFromFile(ctx context.Context, titleNames ...string) ([]Title, error) {
+	if c.logger != nil {
+		fields := map[string]interface{}{
+			"definitions_file": c.definitionsFile,
+		}
+		if len(titleNames) > 0 {
+			fields["requested_titles"] = titleNames
+		}
+		c.logger.LogAuth(ctx, "Reading titles from definitions file", fields)
+	}
+
 	file, err := os.Open(c.definitionsFile)
 	if err != nil {
 		return nil, fmt.Errorf("error opening definitions file: %w", err)
 	}
 	defer func() {
 		if cerr := file.Close(); cerr != nil {
-			fmt.Printf("warning: failed to close definitions file: %v\n", cerr)
+			if c.logger != nil {
+				c.logger.LogAuth(ctx, "Failed to close definitions file", map[string]interface{}{
+					"error": cerr.Error(),
+				})
+			} else {
+				fmt.Printf("warning: failed to close definitions file: %v\n", cerr)
+			}
 		}
 	}()
 
