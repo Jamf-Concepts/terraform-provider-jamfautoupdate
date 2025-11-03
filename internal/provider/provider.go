@@ -4,6 +4,7 @@ package provider
 
 import (
 	"context"
+	"os"
 
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/provider"
@@ -11,27 +12,34 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 
+	"github.com/Jamf-Concepts/terraform-provider-jamfautoupdate/internal/client"
 	"github.com/Jamf-Concepts/terraform-provider-jamfautoupdate/internal/resources/titles"
 )
 
+// Constants for environment variable names.
+const (
+	envDefinitionsURL  = "JAMF_AUTO_UPDATE_DEFINITIONS_URL"
+	envDefinitionsFile = "JAMF_AUTO_UPDATE_DEFINITIONS_FILE"
+)
+
+// Ensure JamfAutoUpdateProvider satisfies various provider interfaces.
+var _ provider.Provider = &JamfAutoUpdateProvider{}
+
+// JamfAutoUpdateProvider defines the provider implementation.
 type JamfAutoUpdateProvider struct {
-	definitionsURL  string
-	definitionsFile string
+	client  *client.Client
+	version string
 }
 
+// JamfAutoUpdateProvider describes the provider data model.
 type JamfAutoUpdateProviderModel struct {
 	DefinitionsURL  types.String `tfsdk:"definitions_url"`
 	DefinitionsFile types.String `tfsdk:"definitions_file"`
 }
 
-// New creates a new instance of the Jamf Auto Update provider.
-func New() provider.Provider {
-	return &JamfAutoUpdateProvider{}
-}
-
-// Metadata sets the metadata for the Jamf Auto Update provider.
-func (p *JamfAutoUpdateProvider) Metadata(_ context.Context, _ provider.MetadataRequest, resp *provider.MetadataResponse) {
+func (p *JamfAutoUpdateProvider) Metadata(ctx context.Context, req provider.MetadataRequest, resp *provider.MetadataResponse) {
 	resp.TypeName = "jamfautoupdate"
+	resp.Version = p.version
 }
 
 // Schema defines the schema for the Jamf Auto Update provider.
@@ -50,28 +58,26 @@ func (p *JamfAutoUpdateProvider) Schema(_ context.Context, _ provider.SchemaRequ
 	}
 }
 
-// Resources returns an empty slice as there are no resources defined for this provider.
-func (p *JamfAutoUpdateProvider) Resources(_ context.Context) []func() resource.Resource {
-	return []func() resource.Resource{}
-}
-
-// DataSources returns the data sources available in the Jamf Auto Update provider.
-func (p *JamfAutoUpdateProvider) DataSources(_ context.Context) []func() datasource.DataSource {
-	return []func() datasource.DataSource{
-		titles.NewTitlesDataSource,
-	}
-}
-
-// Configure initializes the provider with the given configuration.
 func (p *JamfAutoUpdateProvider) Configure(ctx context.Context, req provider.ConfigureRequest, resp *provider.ConfigureResponse) {
-	var config JamfAutoUpdateProviderModel
-	resp.Diagnostics.Append(req.Config.Get(ctx, &config)...)
+	var data JamfAutoUpdateProviderModel
+
+	resp.Diagnostics.Append(req.Config.Get(ctx, &data)...)
+
 	if resp.Diagnostics.HasError() {
 		return
 	}
 
-	urlSet := !config.DefinitionsURL.IsNull() && config.DefinitionsURL.ValueString() != ""
-	fileSet := !config.DefinitionsFile.IsNull() && config.DefinitionsFile.ValueString() != ""
+	definitionsURL := data.DefinitionsURL.ValueString()
+	if definitionsURL == "" {
+		definitionsURL = getenv(envDefinitionsURL)
+	}
+	definitionsFile := data.DefinitionsFile.ValueString()
+	if definitionsFile == "" {
+		definitionsFile = getenv(envDefinitionsFile)
+	}
+
+	urlSet := definitionsURL != ""
+	fileSet := definitionsFile != ""
 
 	if urlSet == fileSet {
 		resp.Diagnostics.AddError(
@@ -81,12 +87,40 @@ func (p *JamfAutoUpdateProvider) Configure(ctx context.Context, req provider.Con
 		return
 	}
 
-	p.definitionsURL = config.DefinitionsURL.ValueString()
-	p.definitionsFile = config.DefinitionsFile.ValueString()
-
-	// Pass both to the data source
-	resp.DataSourceData = map[string]string{
-		"definitions_url":  p.definitionsURL,
-		"definitions_file": p.definitionsFile,
+	var clientObj *client.Client
+	if urlSet {
+		clientObj = client.NewClient(definitionsURL, "")
+	} else {
+		clientObj = client.NewClient("", definitionsFile)
 	}
+
+	clientObj.SetLogger(NewTerraformLogger())
+
+	p.client = clientObj
+	resp.DataSourceData = clientObj
+	resp.ResourceData = clientObj
+}
+
+func (p *JamfAutoUpdateProvider) Resources(ctx context.Context) []func() resource.Resource {
+	return []func() resource.Resource{}
+}
+
+func (p *JamfAutoUpdateProvider) DataSources(ctx context.Context) []func() datasource.DataSource {
+	return []func() datasource.DataSource{
+		titles.NewTitlesDataSource,
+	}
+}
+
+func New(version string) func() provider.Provider {
+	return func() provider.Provider {
+		return &JamfAutoUpdateProvider{
+			version: version,
+		}
+	}
+}
+
+// getenv is a helper to get an environment variable, returns empty string if not set.
+func getenv(key string) string {
+	v, _ := os.LookupEnv(key)
+	return v
 }
