@@ -3,32 +3,46 @@
 package titles
 
 import (
+	"bytes"
 	"context"
+	"encoding/base64"
 	"fmt"
-	"io"
+	"image"
+	"image/png"
 	"strings"
-
-	"encoding/json"
-	"os"
 
 	"github.com/Jamf-Concepts/terraform-provider-jamfautoupdate/internal/client"
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/datasource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/types"
+	"golang.org/x/image/draw"
 )
 
-type TitlesDataSource struct {
-	client          *client.Client
-	imageProcessor  *Processor
-	definitionsURL  string
-	definitionsFile string
+const (
+	OverlayImageBase64 = "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"
+	BaseImageSize      = 512
+	OverlaySize        = 128
+	TargetImageSize    = 512
+)
+
+var _ datasource.DataSource = &TitlesDataSource{}
+
+func NewTitlesDataSource() datasource.DataSource {
+	return &TitlesDataSource{}
 }
 
+// TitlesDataSource defines the data source implementation.
+type TitlesDataSource struct {
+	client *client.Client
+}
+
+// TitlesDataSourceModel describes the data source data model.
 type TitlesDataSourceModel struct {
 	TitleNames types.List   `tfsdk:"title_names"`
 	Titles     []TitleModel `tfsdk:"titles"`
 }
 
+// TitleModel describes the structure of a title in the data source.
 type TitleModel struct {
 	TitleName                types.String `tfsdk:"title_name"`
 	TitleDisplayName         types.String `tfsdk:"title_display_name"`
@@ -49,24 +63,11 @@ type TitleModel struct {
 	AppBundleID              types.String `tfsdk:"app_bundle_id"`
 }
 
-// NewTitlesDataSource creates a new instance of the titles data source with initialized image processor.
-// It implements the datasource.DataSource interface for Terraform provider use.
-func NewTitlesDataSource() datasource.DataSource {
-	return &TitlesDataSource{
-		imageProcessor: NewProcessor(),
-	}
-}
-
-// Metadata returns the full name of the data source by combining the provider name with "_titles".
-// This name is used to identify the data source in Terraform configurations.
-func (d *TitlesDataSource) Metadata(_ context.Context, req datasource.MetadataRequest, resp *datasource.MetadataResponse) {
+func (d *TitlesDataSource) Metadata(ctx context.Context, req datasource.MetadataRequest, resp *datasource.MetadataResponse) {
 	resp.TypeName = req.ProviderTypeName + "_titles"
 }
 
-// Schema defines the schema for the titles data source.
-// It specifies all available attributes and their types, including the optional title_names filter
-// and the computed titles list containing detailed information about each title.
-func (d *TitlesDataSource) Schema(_ context.Context, _ datasource.SchemaRequest, resp *datasource.SchemaResponse) {
+func (d *TitlesDataSource) Schema(ctx context.Context, req datasource.SchemaRequest, resp *datasource.SchemaResponse) {
 	resp.Schema = schema.Schema{
 		Description: "Fetches information about Jamf Auto Update titles.",
 		Attributes: map[string]schema.Attribute{
@@ -155,112 +156,62 @@ func (d *TitlesDataSource) Schema(_ context.Context, _ datasource.SchemaRequest,
 	}
 }
 
-// Configure sets up the data source with the provider-level client.
-// It is called by the Terraform provider framework to initialize the data source
-// with provider-level configuration data.
 func (d *TitlesDataSource) Configure(ctx context.Context, req datasource.ConfigureRequest, resp *datasource.ConfigureResponse) {
 	if req.ProviderData == nil {
 		return
 	}
-	// ProviderData is a map[string]string
-	providerData, ok := req.ProviderData.(map[string]string)
+
+	client, ok := req.ProviderData.(*client.Client)
+
 	if !ok {
-		resp.Diagnostics.AddError("Provider data error", "Could not parse provider data.")
+		resp.Diagnostics.AddError(
+			"Unexpected Data Source Configure Type",
+			fmt.Sprintf("Expected *http.Client, got: %T. Please report this issue to the provider developers.", req.ProviderData),
+		)
+
 		return
 	}
-	d.definitionsURL = providerData["definitions_url"]
-	d.definitionsFile = providerData["definitions_file"]
-	if d.definitionsFile != "" {
-		d.client = nil // not used
-	} else {
-		d.client = client.NewClient(d.definitionsURL)
-	}
+
+	d.client = client
 }
 
-// Read fetches title data from the Jamf Auto Update API and processes it into the Terraform state.
-// It handles both filtered and unfiltered requests, processes icons for uninstall operations,
-// and extracts bundle IDs from patch definitions. Any errors during processing are reported
-// through the diagnostics system.
 func (d *TitlesDataSource) Read(ctx context.Context, req datasource.ReadRequest, resp *datasource.ReadResponse) {
-	var state TitlesDataSourceModel
+	var data TitlesDataSourceModel
 
-	diags := req.Config.Get(ctx, &state)
-	resp.Diagnostics.Append(diags...)
+	resp.Diagnostics.Append(req.Config.Get(ctx, &data)...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
 
 	var titleNames []string
-	if !state.TitleNames.IsNull() {
-		diags = state.TitleNames.ElementsAs(ctx, &titleNames, false)
-		resp.Diagnostics.Append(diags...)
+	if !data.TitleNames.IsNull() {
+		resp.Diagnostics.Append(data.TitleNames.ElementsAs(ctx, &titleNames, false)...)
 		if resp.Diagnostics.HasError() {
 			return
 		}
 	}
 
-	if !state.TitleNames.IsUnknown() && len(titleNames) == 0 {
-		state.Titles = []TitleModel{}
-		diags = resp.State.Set(ctx, &state)
-		resp.Diagnostics.Append(diags...)
+	if !data.TitleNames.IsUnknown() && len(titleNames) == 0 {
+		data.Titles = []TitleModel{}
+		resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
 		return
 	}
 
-	var titles []client.Title
-	var err error
-	if d.definitionsFile != "" {
-		// Read from local file
-		file, err := os.Open(d.definitionsFile)
-		if err != nil {
-			resp.Diagnostics.AddError("Unable to open definitions file", err.Error())
-			return
-		}
-		defer func() {
-			if cerr := file.Close(); cerr != nil {
-				resp.Diagnostics.AddError("Error closing definitions file", cerr.Error())
-			}
-		}()
-		bytes, err := io.ReadAll(file)
-		if err != nil {
-			resp.Diagnostics.AddError("Unable to read definitions file", err.Error())
-			return
-		}
-		var allTitles []client.Title
-		if err := json.Unmarshal(bytes, &allTitles); err != nil {
-			resp.Diagnostics.AddError("Unable to parse definitions file", err.Error())
-			return
-		}
-		// Filter if titleNames is set
-		if len(titleNames) > 0 {
-			for _, t := range allTitles {
-				for _, name := range titleNames {
-					if t.TitleName != nil && *t.TitleName == name {
-						titles = append(titles, t)
-						break
-					}
-				}
-			}
-		} else {
-			titles = allTitles
-		}
-	} else {
-		// Use API client as before
-		titles, err = d.client.GetTitles(ctx, titleNames...)
-		if err != nil {
-			if titlesErr, ok := err.(*client.TitlesNotFoundError); ok {
-				resp.Diagnostics.AddError(
-					"Requested titles not found",
-					fmt.Sprintf("The following titles do not exist: %s",
-						strings.Join(titlesErr.MissingTitles, ", ")),
-				)
-				return
-			}
+	titles, err := d.client.GetTitles(ctx, titleNames...)
+	if err != nil {
+		if titlesErr, ok := err.(*client.TitlesNotFoundError); ok {
 			resp.Diagnostics.AddError(
-				"Unable to read Jamf Auto Update titles",
-				err.Error(),
+				"Requested titles not found",
+				fmt.Sprintf("The following titles do not exist: %s",
+					strings.Join(titlesErr.MissingTitles, ", ")),
 			)
 			return
 		}
+		resp.Diagnostics.AddError(
+			"Unable to read Jamf Auto Update titles",
+			err.Error(),
+		)
+		return
 	}
 
 	for _, title := range titles {
@@ -277,7 +228,7 @@ func (d *TitlesDataSource) Read(ctx context.Context, req datasource.ReadRequest,
 		var uninstallIcon *string
 		if title.IconHiRes != nil {
 			var err error
-			uninstallIcon, err = d.imageProcessor.ProcessUninstallIcon(*title.IconHiRes)
+			uninstallIcon, err = processUninstallIcon(*title.IconHiRes)
 			if err != nil {
 				resp.Diagnostics.AddError(
 					"Error processing icon",
@@ -296,19 +247,77 @@ func (d *TitlesDataSource) Read(ctx context.Context, req datasource.ReadRequest,
 			MaximumOS:                types.StringPointerValue(title.MaximumOS),
 			IconBase64:               types.StringPointerValue(title.IconHiRes),
 			UninstallIconBase64:      types.StringPointerValue(uninstallIcon),
-			ExtensionAttribute:       types.StringPointerValue(title.GetExtensionAttribute()),
-			ContentFilterProfile:     types.StringPointerValue(title.GetContentFilterProfile()),
-			KernelExtensionProfile:   types.StringPointerValue(title.GetKernelExtensionProfile()),
-			ManagedLoginItemsProfile: types.StringPointerValue(title.GetManagedLoginItemsProfile()),
-			NotificationsProfile:     types.StringPointerValue(title.GetNotificationsProfile()),
-			PPPCPProfile:             types.StringPointerValue(title.GetPPPCPProfile()),
-			ScreenRecordingProfile:   types.StringPointerValue(title.GetScreenRecordingProfile()),
-			SystemExtensionProfile:   types.StringPointerValue(title.GetSystemExtensionProfile()),
+			ExtensionAttribute:       types.StringPointerValue(title.ExtensionAttribute),
+			ContentFilterProfile:     types.StringPointerValue(title.ContentFilterProfile),
+			KernelExtensionProfile:   types.StringPointerValue(title.KernelExtensionProfile),
+			ManagedLoginItemsProfile: types.StringPointerValue(title.ManagedLoginItemsProfile),
+			NotificationsProfile:     types.StringPointerValue(title.NotificationsProfile),
+			PPPCPProfile:             types.StringPointerValue(title.PPPCPProfile),
+			ScreenRecordingProfile:   types.StringPointerValue(title.ScreenRecordingProfile),
+			SystemExtensionProfile:   types.StringPointerValue(title.SystemExtensionProfile),
 			AppBundleID:              types.StringPointerValue(bundleID),
 		}
-		state.Titles = append(state.Titles, titleModel)
+		data.Titles = append(data.Titles, titleModel)
 	}
 
-	diags = resp.State.Set(ctx, &state)
-	resp.Diagnostics.Append(diags...)
+	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
+}
+
+// processUninstallIcon processes a base64 encoded image by resizing it and adding an overlay.
+// It takes a base64 encoded string of the original image and returns a base64 encoded string
+// of the processed image. The processing includes resizing to the standard size and adding
+// an uninstall overlay to the bottom right corner.
+// Returns an error if any step of the image processing fails.
+func processUninstallIcon(baseImageB64 string) (*string, error) {
+	baseImageBytes, err := base64.StdEncoding.DecodeString(baseImageB64)
+	if err != nil {
+		return nil, fmt.Errorf("error decoding base image: %w", err)
+	}
+
+	baseImg, _, err := image.Decode(bytes.NewReader(baseImageBytes))
+	if err != nil {
+		return nil, fmt.Errorf("error decoding base image bytes: %w", err)
+	}
+
+	resizedBase := image.NewRGBA(image.Rect(0, 0, BaseImageSize, BaseImageSize))
+	draw.CatmullRom.Scale(resizedBase, resizedBase.Bounds(), baseImg, baseImg.Bounds(), draw.Over, nil)
+	baseImg = resizedBase
+
+	bounds := baseImg.Bounds()
+	rgba := image.NewRGBA(bounds)
+
+	draw.Draw(rgba, bounds, baseImg, image.Point{}, draw.Src)
+
+	overlayBytes, err := base64.StdEncoding.DecodeString(OverlayImageBase64)
+	if err != nil {
+		return nil, fmt.Errorf("error decoding overlay image: %w", err)
+	}
+
+	overlayImg, _, err := image.Decode(bytes.NewReader(overlayBytes))
+	if err != nil {
+		return nil, fmt.Errorf("error decoding overlay image bytes: %w", err)
+	}
+
+	resizedOverlay := image.NewRGBA(image.Rect(0, 0, OverlaySize, OverlaySize))
+	draw.CatmullRom.Scale(resizedOverlay, resizedOverlay.Bounds(), overlayImg, overlayImg.Bounds(), draw.Over, nil)
+	overlayImg = resizedOverlay
+	overlayBounds := overlayImg.Bounds()
+
+	x := bounds.Max.X - overlayBounds.Dx()
+	y := bounds.Max.Y - overlayBounds.Dy()
+
+	offset := image.Point{X: x, Y: y}
+
+	draw.Draw(rgba, image.Rectangle{
+		Min: offset,
+		Max: offset.Add(overlayBounds.Size()),
+	}, overlayImg, image.Point{}, draw.Over)
+
+	var buf bytes.Buffer
+	if err := png.Encode(&buf, rgba); err != nil {
+		return nil, fmt.Errorf("error encoding processed image: %w", err)
+	}
+
+	result := base64.StdEncoding.EncodeToString(buf.Bytes())
+	return &result, nil
 }
