@@ -3,7 +3,7 @@ module github.com/Jamf-Concepts/terraform-provider-jamfautoupdate
 go 1.25.3
 
 require (
-	github.com/hashicorp/terraform-plugin-framework v1.16.1
+	github.com/hashicorp/terraform-plugin-framework v1.17.0
 	github.com/hashicorp/terraform-plugin-log v0.10.0
 	golang.org/x/image v0.33.0
 )
