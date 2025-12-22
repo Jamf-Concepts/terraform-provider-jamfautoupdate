@@ -3,12 +3,12 @@
 page_title: "jamfautoupdate_titles Data Source - terraform-provider-jamfautoupdate"
 subcategory: ""
 description: |-
-  Fetches information about Jamf Auto Update titles. Available titles are shown in the Jamf Auto Update Catalog Browser https://definitions-admin.datajar.mobi/v2/titles
+  Fetches information about Jamf Auto Update titles. Available titles are shown in the Jamf Auto Update Catalog Browser https://support.datajar.co.uk/hc/en-us/articles/4409234438161-Jamf-Auto-Update-Catalog-Browser-User-Guide
 ---
 
 # jamfautoupdate_titles (Data Source)
 
-Fetches information about Jamf Auto Update titles. Available titles are shown in the [Jamf Auto Update Catalog Browser](https://definitions-admin.datajar.mobi/v2/titles)
+Fetches information about Jamf Auto Update titles. Available titles are shown in the [Jamf Auto Update Catalog Browser](https://support.datajar.co.uk/hc/en-us/articles/4409234438161-Jamf-Auto-Update-Catalog-Browser-User-Guide)
 
 ## Example Usage
 
