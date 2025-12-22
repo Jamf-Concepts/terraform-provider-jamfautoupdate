@@ -75,7 +75,7 @@ func (d *TitlesDataSource) Metadata(ctx context.Context, req datasource.Metadata
 
 func (d *TitlesDataSource) Schema(ctx context.Context, req datasource.SchemaRequest, resp *datasource.SchemaResponse) {
 	resp.Schema = schema.Schema{
-		Description: "Fetches information about Jamf Auto Update titles. Available titles are shown in the [Jamf Auto Update Catalog Browser](https://definitions-admin.datajar.mobi/v2/titles)",
+		Description: "Fetches information about Jamf Auto Update titles. Available titles are shown in the [Jamf Auto Update Catalog Browser](https://support.datajar.co.uk/hc/en-us/articles/4409234438161-Jamf-Auto-Update-Catalog-Browser-User-Guide)",
 		Attributes: map[string]schema.Attribute{
 			"timeouts": timeouts.Attributes(ctx),
 			"title_names": schema.ListAttribute{
