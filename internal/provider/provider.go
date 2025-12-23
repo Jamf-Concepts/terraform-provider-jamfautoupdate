@@ -45,14 +45,15 @@ func (p *JamfAutoUpdateProvider) Metadata(ctx context.Context, req provider.Meta
 // Schema defines the schema for the Jamf Auto Update provider.
 func (p *JamfAutoUpdateProvider) Schema(_ context.Context, _ provider.SchemaRequest, resp *provider.SchemaResponse) {
 	resp.Schema = schema.Schema{
+		MarkdownDescription: "Provides metadata for software titles sourced from [Jamf Auto Update](https://datajar.co.uk/products/jamf-auto-update/) using a private API. Intended for internal use within the Jamf organization.",
 		Attributes: map[string]schema.Attribute{
 			"definitions_url": schema.StringAttribute{
-				Optional:    true,
-				Description: "The baseURL of the Definitions API. Mutually exclusive with definitions_file.",
+				Optional:            true,
+				MarkdownDescription: "The baseURL of the Definitions API. Mutually exclusive with definitions_file.",
 			},
 			"definitions_file": schema.StringAttribute{
-				Optional:    true,
-				Description: "Path to a local JSON file containing definitions. Mutually exclusive with definitions_url.",
+				Optional:            true,
+				MarkdownDescription: "Path to a local JSON file containing definitions. Mutually exclusive with definitions_url.",
 			},
 		},
 	}

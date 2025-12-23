@@ -3,12 +3,12 @@
 page_title: "jamfautoupdate_titles Data Source - terraform-provider-jamfautoupdate"
 subcategory: ""
 description: |-
-  Fetches information about Jamf Auto Update titles.
+  Fetches information about Jamf Auto Update titles. Available titles are shown in the Jamf Auto Update Catalog Browser https://support.datajar.co.uk/hc/en-us/articles/4409234438161-Jamf-Auto-Update-Catalog-Browser-User-Guide
 ---
 
 # jamfautoupdate_titles (Data Source)
 
-Fetches information about Jamf Auto Update titles.
+Fetches information about Jamf Auto Update titles. Available titles are shown in the [Jamf Auto Update Catalog Browser](https://support.datajar.co.uk/hc/en-us/articles/4409234438161-Jamf-Auto-Update-Catalog-Browser-User-Guide)
 
 ## Example Usage
 
@@ -91,11 +91,20 @@ output "available_profiles" {
 
 ### Optional
 
-- `title_names` (List of String) Optional list of specific title names to retrieve. If not provided, returns all titles.
+- `timeouts` (Attributes) (see [below for nested schema](#nestedatt--timeouts))
+- `title_names` (List of String) List of specific title names to retrieve.
 
 ### Read-Only
 
 - `titles` (Attributes List) List of titles and their details (see [below for nested schema](#nestedatt--titles))
+
+<a id="nestedatt--timeouts"></a>
+### Nested Schema for `timeouts`
+
+Optional:
+
+- `read` (String) A string that can be [parsed as a duration](https://pkg.go.dev/time#ParseDuration) consisting of numbers and unit suffixes, such as "30s" or "2h45m". Valid time units are "s" (seconds), "m" (minutes), "h" (hours).
+
 
 <a id="nestedatt--titles"></a>
 ### Nested Schema for `titles`

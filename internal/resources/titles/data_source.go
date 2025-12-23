@@ -10,8 +10,10 @@ import (
 	"image"
 	"image/png"
 	"strings"
+	"time"
 
 	"github.com/Jamf-Concepts/terraform-provider-jamfautoupdate/internal/client"
+	"github.com/hashicorp/terraform-plugin-framework-timeouts/datasource/timeouts"
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/datasource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/types"
@@ -26,6 +28,8 @@ const (
 	TargetImageSize    = 512
 )
 
+const defaultReadTimeout = 90 * time.Second
+
 var _ datasource.DataSource = &TitlesDataSource{}
 
 func NewTitlesDataSource() datasource.DataSource {
@@ -39,8 +43,9 @@ type TitlesDataSource struct {
 
 // TitlesDataSourceModel describes the data source data model.
 type TitlesDataSourceModel struct {
-	TitleNames types.List   `tfsdk:"title_names"`
-	Titles     []TitleModel `tfsdk:"titles"`
+	TitleNames types.List     `tfsdk:"title_names"`
+	Timeouts   timeouts.Value `tfsdk:"timeouts"`
+	Titles     []TitleModel   `tfsdk:"titles"`
 }
 
 // TitleModel describes the structure of a title in the data source.
@@ -70,85 +75,86 @@ func (d *TitlesDataSource) Metadata(ctx context.Context, req datasource.Metadata
 
 func (d *TitlesDataSource) Schema(ctx context.Context, req datasource.SchemaRequest, resp *datasource.SchemaResponse) {
 	resp.Schema = schema.Schema{
-		Description: "Fetches information about Jamf Auto Update titles.",
+		Description: "Fetches information about Jamf Auto Update titles. Available titles are shown in the [Jamf Auto Update Catalog Browser](https://support.datajar.co.uk/hc/en-us/articles/4409234438161-Jamf-Auto-Update-Catalog-Browser-User-Guide)",
 		Attributes: map[string]schema.Attribute{
+			"timeouts": timeouts.Attributes(ctx),
 			"title_names": schema.ListAttribute{
-				ElementType: types.StringType,
-				Optional:    true,
-				Description: "Optional list of specific title names to retrieve. If not provided, returns all titles.",
+				ElementType:         types.StringType,
+				Optional:            true,
+				MarkdownDescription: "List of specific title names to retrieve.",
 			},
 			"titles": schema.ListNestedAttribute{
-				Computed:    true,
-				Description: "List of titles and their details",
+				Computed:            true,
+				MarkdownDescription: "List of titles and their details",
 				NestedObject: schema.NestedAttributeObject{
 					Attributes: map[string]schema.Attribute{
 						"title_name": schema.StringAttribute{
-							Computed:    true,
-							Description: "The name of the title",
+							Computed:            true,
+							MarkdownDescription: "The name of the title",
 						},
 						"title_display_name": schema.StringAttribute{
-							Computed:    true,
-							Description: "The display name of the title",
+							Computed:            true,
+							MarkdownDescription: "The display name of the title",
 						},
 						"title_description": schema.StringAttribute{
-							Computed:    true,
-							Description: "The description of the title",
+							Computed:            true,
+							MarkdownDescription: "The description of the title",
 						},
 						"title_version": schema.StringAttribute{
-							Computed:    true,
-							Description: "The version of the title",
+							Computed:            true,
+							MarkdownDescription: "The version of the title",
 						},
 						"minimum_os": schema.StringAttribute{
-							Computed:    true,
-							Description: "Minimum OS version required",
+							Computed:            true,
+							MarkdownDescription: "Minimum OS version required",
 						},
 						"maximum_os": schema.StringAttribute{
-							Computed:    true,
-							Description: "Maximum OS version supported",
+							Computed:            true,
+							MarkdownDescription: "Maximum OS version supported",
 						},
 						"icon_base64": schema.StringAttribute{
-							Computed:    true,
-							Description: "The icon in base64 format",
+							Computed:            true,
+							MarkdownDescription: "The icon in base64 format",
 						},
 						"uninstall_icon_base64": schema.StringAttribute{
-							Computed:    true,
-							Description: "The uninstall icon in base64 format",
+							Computed:            true,
+							MarkdownDescription: "The uninstall icon in base64 format",
 						},
 						"extension_attribute": schema.StringAttribute{
-							Computed:    true,
-							Description: "Extension attribute data",
+							Computed:            true,
+							MarkdownDescription: "Extension attribute data",
 						},
 						"content_filter_profile": schema.StringAttribute{
-							Computed:    true,
-							Description: "Content filter profile data",
+							Computed:            true,
+							MarkdownDescription: "Content filter profile data",
 						},
 						"kernel_extension_profile": schema.StringAttribute{
-							Computed:    true,
-							Description: "Kernel extension profile data",
+							Computed:            true,
+							MarkdownDescription: "Kernel extension profile data",
 						},
 						"managed_login_items_profile": schema.StringAttribute{
-							Computed:    true,
-							Description: "Managed login items profile data",
+							Computed:            true,
+							MarkdownDescription: "Managed login items profile data",
 						},
 						"notifications_profile": schema.StringAttribute{
-							Computed:    true,
-							Description: "Notifications profile data",
+							Computed:            true,
+							MarkdownDescription: "Notifications profile data",
 						},
 						"pppcp_profile": schema.StringAttribute{
-							Computed:    true,
-							Description: "PPPCP profile data",
+							Computed:            true,
+							MarkdownDescription: "PPPCP profile data",
 						},
 						"screen_recording_profile": schema.StringAttribute{
-							Computed:    true,
-							Description: "Screen recording profile data",
+							Computed:            true,
+							MarkdownDescription: "Screen recording profile data",
 						},
 						"system_extension_profile": schema.StringAttribute{
-							Computed:    true,
-							Description: "System extension profile data",
+							Computed:            true,
+							MarkdownDescription: "System extension profile data",
 						},
 						"app_bundle_id": schema.StringAttribute{
-							Computed:    true,
-							Description: "The application bundle identifier",
+							Computed:            true,
+							MarkdownDescription: "The application bundle identifier",
 						},
 					},
 				},
@@ -198,7 +204,20 @@ func (d *TitlesDataSource) Read(ctx context.Context, req datasource.ReadRequest,
 		return
 	}
 
-	titles, err := d.client.GetTitles(ctx, titleNames...)
+	readTimeout := defaultReadTimeout
+	if !data.Timeouts.IsNull() && !data.Timeouts.IsUnknown() {
+		configuredTimeout, timeoutDiags := data.Timeouts.Read(ctx, defaultReadTimeout)
+		resp.Diagnostics.Append(timeoutDiags...)
+		if resp.Diagnostics.HasError() {
+			return
+		}
+		readTimeout = configuredTimeout
+	}
+
+	readCtx, cancel := context.WithTimeout(ctx, readTimeout)
+	defer cancel()
+
+	titles, err := d.client.GetTitles(readCtx, titleNames...)
 	if err != nil {
 		if titlesErr, ok := err.(*client.TitlesNotFoundError); ok {
 			resp.Diagnostics.AddError(
