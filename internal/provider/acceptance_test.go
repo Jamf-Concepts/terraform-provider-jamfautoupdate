@@ -24,7 +24,7 @@ var testAccProtoV6ProviderFactories = map[string]func() (tfprotov6.ProviderServe
 func testAccPreCheck(t *testing.T) {
 	t.Helper()
 	if os.Getenv("JAMF_AUTO_UPDATE_DEFINITIONS_URL") == "" && os.Getenv("JAMF_AUTO_UPDATE_DEFINITIONS_FILE") == "" {
-		t.Fatal("JAMF_AUTO_UPDATE_DEFINITIONS_URL or JAMF_AUTO_UPDATE_DEFINITIONS_FILE must be set for acceptance tests")
+		t.Skip("JAMF_AUTO_UPDATE_DEFINITIONS_URL or JAMF_AUTO_UPDATE_DEFINITIONS_FILE must be set for acceptance tests")
 	}
 }
 
