@@ -1,3 +1,6 @@
+// Copyright Jamf Software LLC 2026
+// SPDX-License-Identifier: MPL-2.0
+
 package provider
 
 import (
@@ -8,6 +11,9 @@ import (
 	"github.com/Jamf-Concepts/terraform-provider-jamfautoupdate/internal/client"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 )
+
+// maxLogBodyDisplay is the maximum number of characters to display in logged response bodies.
+const maxLogBodyDisplay = 5000
 
 // Ensure TerraformLogger implements client.Logger interface
 var _ client.Logger = (*TerraformLogger)(nil)
@@ -69,8 +75,8 @@ func (l *TerraformLogger) LogResponse(ctx context.Context, statusCode int, heade
 
 	if len(body) > 0 {
 		bodyStr := string(body)
-		if len(bodyStr) > 5000 {
-			bodyStr = bodyStr[:5000] + "... (truncated)"
+		if len(bodyStr) > maxLogBodyDisplay {
+			bodyStr = bodyStr[:maxLogBodyDisplay] + "... (truncated)"
 			fields["response_body"] = bodyStr
 		} else {
 			fields["response_body"] = prettyPrintJSON(body)
