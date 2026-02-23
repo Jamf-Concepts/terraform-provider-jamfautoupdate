@@ -67,7 +67,7 @@ jobs:
   acceptance:
     name: Acceptance Tests (Terraform ${{ matrix.terraform }})
     needs: unit
-    runs-on: [self-hosted, jamf-ubuntu-latest]
+    runs-on: ubuntu-latest
     timeout-minutes: 15
     strategy:
       fail-fast: false
