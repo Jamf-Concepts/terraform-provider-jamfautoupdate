@@ -9,11 +9,6 @@ import (
 	"github.com/Jamf-Concepts/terraform-provider-jamfautoupdate/internal/client"
 )
 
-//go:fix inline
-func strPtr(s string) *string {
-	return new(s)
-}
-
 func TestBuildTitleModelsFromResponse_SingleTitle(t *testing.T) {
 	titles := []client.Title{
 		{

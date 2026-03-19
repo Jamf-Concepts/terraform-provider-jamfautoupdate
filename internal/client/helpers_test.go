@@ -7,11 +7,6 @@ import (
 	"testing"
 )
 
-//go:fix inline
-func strPtr(s string) *string {
-	return new(s)
-}
-
 func TestTitlesMissing_AllFound(t *testing.T) {
 	titles := []Title{
 		{TitleName: new("AppA")},
