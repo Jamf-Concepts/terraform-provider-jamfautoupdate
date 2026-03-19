@@ -13,7 +13,7 @@ import (
 func (c *Client) closeWithLog(ctx context.Context, closer io.Closer, name string) {
 	if err := closer.Close(); err != nil {
 		if c.logger != nil {
-			c.logger.LogAuth(ctx, fmt.Sprintf("Failed to close %s", name), map[string]interface{}{
+			c.logger.LogAuth(ctx, fmt.Sprintf("Failed to close %s", name), map[string]any{
 				"error": err.Error(),
 			})
 		} else {

@@ -235,4 +235,4 @@ func (m *mockLogger) LogResponse(_ context.Context, _ int, _ http.Header, _ []by
 	m.responseCount++
 }
 
-func (m *mockLogger) LogAuth(_ context.Context, _ string, _ map[string]interface{}) {}
+func (m *mockLogger) LogAuth(_ context.Context, _ string, _ map[string]any) {}
