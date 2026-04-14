@@ -7,14 +7,10 @@ import (
 	"testing"
 )
 
-func strPtr(s string) *string {
-	return &s
-}
-
 func TestTitlesMissing_AllFound(t *testing.T) {
 	titles := []Title{
-		{TitleName: strPtr("AppA")},
-		{TitleName: strPtr("AppB")},
+		{TitleName: new("AppA")},
+		{TitleName: new("AppB")},
 	}
 	missing := titlesMissing(titles, []string{"AppA", "AppB"})
 	if len(missing) != 0 {
@@ -24,7 +20,7 @@ func TestTitlesMissing_AllFound(t *testing.T) {
 
 func TestTitlesMissing_NoneFound(t *testing.T) {
 	titles := []Title{
-		{TitleName: strPtr("AppC")},
+		{TitleName: new("AppC")},
 	}
 	missing := titlesMissing(titles, []string{"AppA", "AppB"})
 	if len(missing) != 2 {
@@ -34,8 +30,8 @@ func TestTitlesMissing_NoneFound(t *testing.T) {
 
 func TestTitlesMissing_PartialMatch(t *testing.T) {
 	titles := []Title{
-		{TitleName: strPtr("AppA")},
-		{TitleName: strPtr("AppC")},
+		{TitleName: new("AppA")},
+		{TitleName: new("AppC")},
 	}
 	missing := titlesMissing(titles, []string{"AppA", "AppB"})
 	if len(missing) != 1 || missing[0] != "AppB" {
@@ -46,7 +42,7 @@ func TestTitlesMissing_PartialMatch(t *testing.T) {
 func TestTitlesMissing_NilTitleName(t *testing.T) {
 	titles := []Title{
 		{TitleName: nil},
-		{TitleName: strPtr("AppA")},
+		{TitleName: new("AppA")},
 	}
 	missing := titlesMissing(titles, []string{"AppA", "AppB"})
 	if len(missing) != 1 || missing[0] != "AppB" {
@@ -56,7 +52,7 @@ func TestTitlesMissing_NilTitleName(t *testing.T) {
 
 func TestTitlesMissing_EmptyRequested(t *testing.T) {
 	titles := []Title{
-		{TitleName: strPtr("AppA")},
+		{TitleName: new("AppA")},
 	}
 	missing := titlesMissing(titles, []string{})
 	if len(missing) != 0 {

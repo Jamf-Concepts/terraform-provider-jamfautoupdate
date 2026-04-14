@@ -9,21 +9,17 @@ import (
 	"github.com/Jamf-Concepts/terraform-provider-jamfautoupdate/internal/client"
 )
 
-func strPtr(s string) *string {
-	return &s
-}
-
 func TestBuildTitleModelsFromResponse_SingleTitle(t *testing.T) {
 	titles := []client.Title{
 		{
-			TitleName:        strPtr("GoogleChrome"),
-			TitleDisplayName: strPtr("Google Chrome"),
-			TitleVersion:     strPtr("120.0"),
-			MinimumOS:        strPtr("12.0"),
-			MaximumOS:        strPtr("15.0"),
+			TitleName:        new("GoogleChrome"),
+			TitleDisplayName: new("Google Chrome"),
+			TitleVersion:     new("120.0"),
+			MinimumOS:        new("12.0"),
+			MaximumOS:        new("15.0"),
 			PatchDefinition: client.PatchDefinition{
 				Requirements: []client.Requirement{
-					{Name: strPtr("Application Bundle ID"), Value: strPtr("com.google.Chrome")},
+					{Name: new("Application Bundle ID"), Value: new("com.google.Chrome")},
 				},
 			},
 		},
@@ -52,7 +48,7 @@ func TestBuildTitleModelsFromResponse_SingleTitle(t *testing.T) {
 func TestBuildTitleModelsFromResponse_NilFields(t *testing.T) {
 	titles := []client.Title{
 		{
-			TitleName:       strPtr("TestApp"),
+			TitleName:       new("TestApp"),
 			PatchDefinition: client.PatchDefinition{},
 		},
 	}
@@ -90,12 +86,12 @@ func TestBuildTitleModelsFromResponse_EmptySlice(t *testing.T) {
 func TestBuildTitleModelsFromResponse_BundleIDExtraction(t *testing.T) {
 	titles := []client.Title{
 		{
-			TitleName: strPtr("TestApp"),
+			TitleName: new("TestApp"),
 			PatchDefinition: client.PatchDefinition{
 				Requirements: []client.Requirement{
-					{Name: strPtr("OS Version"), Value: strPtr("12.0")},
-					{Name: strPtr("Application Bundle ID"), Value: strPtr("com.test.app")},
-					{Name: strPtr("Processor"), Value: strPtr("arm64")},
+					{Name: new("OS Version"), Value: new("12.0")},
+					{Name: new("Application Bundle ID"), Value: new("com.test.app")},
+					{Name: new("Processor"), Value: new("arm64")},
 				},
 			},
 		},
@@ -113,10 +109,10 @@ func TestBuildTitleModelsFromResponse_BundleIDExtraction(t *testing.T) {
 func TestBuildTitleModelsFromResponse_NoBundleID(t *testing.T) {
 	titles := []client.Title{
 		{
-			TitleName: strPtr("TestApp"),
+			TitleName: new("TestApp"),
 			PatchDefinition: client.PatchDefinition{
 				Requirements: []client.Requirement{
-					{Name: strPtr("OS Version"), Value: strPtr("12.0")},
+					{Name: new("OS Version"), Value: new("12.0")},
 				},
 			},
 		},
@@ -134,7 +130,7 @@ func TestBuildTitleModelsFromResponse_NoBundleID(t *testing.T) {
 func TestBuildTitleModelsFromResponse_NoRequirements(t *testing.T) {
 	titles := []client.Title{
 		{
-			TitleName:       strPtr("TestApp"),
+			TitleName:       new("TestApp"),
 			PatchDefinition: client.PatchDefinition{},
 		},
 	}
@@ -150,7 +146,7 @@ func TestBuildTitleModelsFromResponse_NoRequirements(t *testing.T) {
 
 func TestExtractBundleID_Found(t *testing.T) {
 	reqs := []client.Requirement{
-		{Name: strPtr("Application Bundle ID"), Value: strPtr("com.example.app")},
+		{Name: new("Application Bundle ID"), Value: new("com.example.app")},
 	}
 	result := extractBundleID(reqs)
 	if result == nil || *result != "com.example.app" {
@@ -160,7 +156,7 @@ func TestExtractBundleID_Found(t *testing.T) {
 
 func TestExtractBundleID_NotFound(t *testing.T) {
 	reqs := []client.Requirement{
-		{Name: strPtr("OS Version"), Value: strPtr("12.0")},
+		{Name: new("OS Version"), Value: new("12.0")},
 	}
 	result := extractBundleID(reqs)
 	if result != nil {

@@ -14,7 +14,7 @@ import (
 // getTitlesFromFile retrieves titles from a local JSON file.
 func (c *Client) getTitlesFromFile(ctx context.Context, titleNames ...string) ([]Title, error) {
 	if c.logger != nil {
-		fields := map[string]interface{}{
+		fields := map[string]any{
 			"definitions_file": c.definitionsFile,
 		}
 		if len(titleNames) > 0 {

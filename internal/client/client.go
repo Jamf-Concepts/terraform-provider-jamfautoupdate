@@ -104,14 +104,14 @@ func (c *Client) logHTTPResponse(ctx context.Context, resp *http.Response) {
 
 	responseBody, err := io.ReadAll(resp.Body)
 	if err != nil {
-		c.logger.LogAuth(ctx, "Failed to read response body", map[string]interface{}{
+		c.logger.LogAuth(ctx, "Failed to read response body", map[string]any{
 			"error": err.Error(),
 		})
 		return
 	}
 
 	if err := resp.Body.Close(); err != nil {
-		c.logger.LogAuth(ctx, "Failed to close response body", map[string]interface{}{
+		c.logger.LogAuth(ctx, "Failed to close response body", map[string]any{
 			"error": err.Error(),
 		})
 	}

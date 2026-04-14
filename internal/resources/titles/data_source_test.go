@@ -53,7 +53,7 @@ func TestTitlesDataSource_Schema(t *testing.T) {
 	}
 
 	nested, ok := titlesAttr.(interface {
-		GetNestedObject() interface{ GetAttributes() map[string]interface{} }
+		GetNestedObject() interface{ GetAttributes() map[string]any }
 	})
 	_ = nested
 	_ = ok
