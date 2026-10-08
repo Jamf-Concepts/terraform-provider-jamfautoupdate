@@ -10,12 +10,17 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"net/url"
 	"strings"
 	"time"
 )
 
 // defaultHTTPTimeout is the maximum duration for HTTP requests made by the client.
 const defaultHTTPTimeout = 30 * time.Second
+
+// maxTitleNamesLength is the maximum combined length of the escaped title names in a single request URL.
+// The definitions API rejects URLs longer than roughly 4100 characters, so this leaves ample headroom.
+const maxTitleNamesLength = 2000
 
 // Client is a Jamf Auto Update API client.
 type Client struct {
@@ -41,18 +46,43 @@ func (c *Client) SetLogger(logger Logger) {
 }
 
 // GetTitles retrieves titles from the API or file. If titleNames is empty, it returns all titles.
-// If titleNames contains one or more names, it returns data for those specific titles.
+// If titleNames contains one or more names, it returns data for those specific titles. In HTTP mode
+// large name lists are split across multiple requests to keep each URL within server limits.
 func (c *Client) GetTitles(ctx context.Context, titleNames ...string) ([]Title, error) {
 	if c.definitionsFile != "" {
 		return c.getTitlesFromFile(ctx, titleNames...)
 	}
 
-	url := c.baseURL
-	if len(titleNames) > 0 {
-		url = fmt.Sprintf("%s/%s", c.baseURL, strings.Join(titleNames, ","))
+	if len(titleNames) == 0 {
+		return c.fetchTitles(ctx, c.baseURL)
 	}
 
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
+	var titles []Title
+	for _, chunk := range chunkTitleNames(titleNames, maxTitleNamesLength) {
+		escaped := make([]string, len(chunk))
+		for i, name := range chunk {
+			escaped[i] = url.PathEscape(name)
+		}
+
+		chunkTitles, err := c.fetchTitles(ctx, fmt.Sprintf("%s/%s", c.baseURL, strings.Join(escaped, ",")))
+		if err != nil {
+			return nil, err
+		}
+		titles = append(titles, chunkTitles...)
+	}
+
+	if missing := titlesMissing(titles, titleNames); len(missing) > 0 {
+		return nil, &TitlesNotFoundError{MissingTitles: missing}
+	}
+
+	return titles, nil
+}
+
+// fetchTitles performs a single GET request against the given URL and decodes the titles in the response.
+// The API answers 207 when only some of the requested titles exist and 404 with an empty JSON array when none do;
+// both are returned as ordinary results so the caller can report which titles are missing.
+func (c *Client) fetchTitles(ctx context.Context, requestURL string) ([]Title, error) {
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, requestURL, nil)
 	if err != nil {
 		return nil, fmt.Errorf("error creating request: %w", err)
 	}
@@ -72,19 +102,16 @@ func (c *Client) GetTitles(ctx context.Context, titleNames ...string) ([]Title, 
 
 	defer c.closeWithLog(ctx, resp.Body, "response body")
 
-	if resp.StatusCode != http.StatusOK {
+	if resp.StatusCode != http.StatusOK && resp.StatusCode != http.StatusMultiStatus && resp.StatusCode != http.StatusNotFound {
 		return nil, fmt.Errorf("API request failed with status code: %d", resp.StatusCode)
 	}
 
 	var titles []Title
 	if err := json.NewDecoder(resp.Body).Decode(&titles); err != nil {
-		return nil, fmt.Errorf("error decoding response: %w", err)
-	}
-
-	if len(titleNames) > 0 {
-		if missing := titlesMissing(titles, titleNames); len(missing) > 0 {
-			return nil, &TitlesNotFoundError{MissingTitles: missing}
+		if resp.StatusCode == http.StatusNotFound {
+			return nil, fmt.Errorf("API request failed with status code: %d", resp.StatusCode)
 		}
+		return nil, fmt.Errorf("error decoding response: %w", err)
 	}
 
 	return titles, nil
