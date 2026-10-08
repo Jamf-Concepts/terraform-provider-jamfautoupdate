@@ -5,9 +5,11 @@ package titles
 
 import (
 	"context"
+	"reflect"
 	"testing"
 
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
+	"github.com/hashicorp/terraform-plugin-framework/datasource/schema"
 )
 
 func TestTitlesDataSource_Metadata(t *testing.T) {
@@ -47,25 +49,20 @@ func TestTitlesDataSource_Schema(t *testing.T) {
 		}
 	}
 
-	titlesAttr, ok := attrs["titles"]
+	titlesAttr, ok := attrs["titles"].(schema.ListNestedAttribute)
 	if !ok {
-		t.Fatal("missing titles attribute")
+		t.Fatalf("expected titles to be a ListNestedAttribute, got %T", attrs["titles"])
 	}
 
-	nested, ok := titlesAttr.(interface {
-		GetNestedObject() interface{ GetAttributes() map[string]any }
-	})
-	_ = nested
-	_ = ok
-
-	expectedNestedAttrs := []string{
-		"title_name", "title_display_name", "title_description", "title_version",
-		"minimum_os", "maximum_os", "icon_base64", "uninstall_icon_base64",
-		"extension_attribute", "content_filter_profile", "kernel_extension_profile",
-		"managed_login_items_profile", "notifications_profile", "pppcp_profile",
-		"screen_recording_profile", "system_extension_profile", "app_bundle_id",
+	nestedAttrs := titlesAttr.NestedObject.Attributes
+	modelType := reflect.TypeFor[TitleModel]()
+	for i := range modelType.NumField() {
+		tag := modelType.Field(i).Tag.Get("tfsdk")
+		if _, ok := nestedAttrs[tag]; !ok {
+			t.Errorf("model field %q has no matching schema attribute", tag)
+		}
 	}
-	if len(expectedNestedAttrs) != 17 {
-		t.Errorf("expected 17 nested attributes, listed %d", len(expectedNestedAttrs))
+	if len(nestedAttrs) != modelType.NumField() {
+		t.Errorf("schema has %d nested attributes, model has %d fields", len(nestedAttrs), modelType.NumField())
 	}
 }

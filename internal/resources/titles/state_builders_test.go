@@ -4,7 +4,12 @@
 package titles
 
 import (
+	"encoding/json"
+	"reflect"
+	"strings"
 	"testing"
+
+	"github.com/hashicorp/terraform-plugin-framework/types"
 
 	"github.com/Jamf-Concepts/terraform-provider-jamfautoupdate/internal/client"
 )
@@ -175,5 +180,62 @@ func TestExtractBundleID_NilSlice(t *testing.T) {
 	result := extractBundleID(nil)
 	if result != nil {
 		t.Errorf("expected nil, got %s", *result)
+	}
+}
+
+func TestBuildTitleModelsFromResponse_AllProfilesMapped(t *testing.T) {
+	modelType := reflect.TypeFor[TitleModel]()
+	payload := map[string]string{"title_name": "TestApp"}
+	var profileTags []string
+	for i := range modelType.NumField() {
+		tag := modelType.Field(i).Tag.Get("tfsdk")
+		if strings.HasSuffix(tag, "_profile") {
+			payload[tag] = "value-" + tag
+			profileTags = append(profileTags, tag)
+		}
+	}
+	if len(profileTags) != 31 {
+		t.Fatalf("expected 31 profile fields on the model, got %d", len(profileTags))
+	}
+
+	raw, err := json.Marshal(payload)
+	if err != nil {
+		t.Fatalf("unexpected marshal error: %v", err)
+	}
+	var title client.Title
+	if err := json.Unmarshal(raw, &title); err != nil {
+		t.Fatalf("unexpected unmarshal error: %v", err)
+	}
+
+	models, err := buildTitleModelsFromResponse([]client.Title{title})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	modelValue := reflect.ValueOf(models[0])
+	for i := range modelType.NumField() {
+		tag := modelType.Field(i).Tag.Get("tfsdk")
+		if !strings.HasSuffix(tag, "_profile") {
+			continue
+		}
+		got := modelValue.Field(i).Interface().(types.String)
+		if got.ValueString() != "value-"+tag {
+			t.Errorf("%s: expected %q, got %q", tag, "value-"+tag, got.ValueString())
+		}
+	}
+}
+
+func TestBuildTitleModelsFromResponse_NullProfiles(t *testing.T) {
+	var title client.Title
+	if err := json.Unmarshal([]byte(`{"title_name":"TestApp","accessibility_profile":null,"camera_profile":null}`), &title); err != nil {
+		t.Fatalf("unexpected unmarshal error: %v", err)
+	}
+
+	models, err := buildTitleModelsFromResponse([]client.Title{title})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if !models[0].AccessibilityProfile.IsNull() || !models[0].CameraProfile.IsNull() {
+		t.Error("expected null profiles for JSON null values")
 	}
 }
