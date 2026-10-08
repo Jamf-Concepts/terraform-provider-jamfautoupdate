@@ -56,8 +56,8 @@ func TestTitlesDataSource_Schema(t *testing.T) {
 
 	nestedAttrs := titlesAttr.NestedObject.Attributes
 	modelType := reflect.TypeFor[TitleModel]()
-	for i := range modelType.NumField() {
-		tag := modelType.Field(i).Tag.Get("tfsdk")
+	for field := range modelType.Fields() {
+		tag := field.Tag.Get("tfsdk")
 		if _, ok := nestedAttrs[tag]; !ok {
 			t.Errorf("model field %q has no matching schema attribute", tag)
 		}

@@ -187,8 +187,8 @@ func TestBuildTitleModelsFromResponse_AllProfilesMapped(t *testing.T) {
 	modelType := reflect.TypeFor[TitleModel]()
 	payload := map[string]string{"title_name": "TestApp"}
 	var profileTags []string
-	for i := range modelType.NumField() {
-		tag := modelType.Field(i).Tag.Get("tfsdk")
+	for field := range modelType.Fields() {
+		tag := field.Tag.Get("tfsdk")
 		if strings.HasSuffix(tag, "_profile") {
 			payload[tag] = "value-" + tag
 			profileTags = append(profileTags, tag)
