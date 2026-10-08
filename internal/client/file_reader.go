@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"os"
 	"slices"
+	"strings"
 )
 
 // getTitlesFromFile retrieves titles from a local JSON file.
@@ -39,9 +40,9 @@ func (c *Client) getTitlesFromFile(ctx context.Context, titleNames ...string) ([
 		return titles, nil
 	}
 
-	wanted := make(map[string]struct{}, len(titleNames))
+	wanted := make(map[string]string, len(titleNames))
 	for _, name := range titleNames {
-		wanted[name] = struct{}{}
+		wanted[strings.ToLower(name)] = name
 	}
 
 	token, err := decoder.Token()
@@ -64,9 +65,10 @@ func (c *Client) getTitlesFromFile(ctx context.Context, titleNames ...string) ([
 			continue
 		}
 
-		if _, ok := wanted[*title.TitleName]; ok {
+		key := strings.ToLower(*title.TitleName)
+		if _, ok := wanted[key]; ok {
 			titles = append(titles, title)
-			delete(wanted, *title.TitleName)
+			delete(wanted, key)
 
 			if len(wanted) == 0 {
 				break
@@ -76,7 +78,7 @@ func (c *Client) getTitlesFromFile(ctx context.Context, titleNames ...string) ([
 
 	if len(wanted) > 0 {
 		missing := make([]string, 0, len(wanted))
-		for name := range wanted {
+		for _, name := range wanted {
 			missing = append(missing, name)
 		}
 		slices.Sort(missing)
