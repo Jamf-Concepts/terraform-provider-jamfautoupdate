@@ -126,3 +126,21 @@ func TestGetTitlesFromFile_NullTitleName(t *testing.T) {
 		t.Errorf("expected AppA, got %s", *titles[0].TitleName)
 	}
 }
+
+func TestGetTitlesFromFile_CaseInsensitive(t *testing.T) {
+	path := writeTempFile(t, testMultipleTitlesJSON)
+	c := NewClient("", path)
+	titles, err := c.GetTitles(context.Background(), "googlechrome")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if len(titles) != 1 || *titles[0].TitleName != "GoogleChrome" {
+		t.Errorf("expected GoogleChrome, got %v", titles)
+	}
+
+	_, err = c.GetTitles(context.Background(), "nOpE")
+	notFound, ok := err.(*TitlesNotFoundError)
+	if !ok || len(notFound.MissingTitles) != 1 || notFound.MissingTitles[0] != "nOpE" {
+		t.Errorf("expected nOpE reported with original casing, got %v", err)
+	}
+}

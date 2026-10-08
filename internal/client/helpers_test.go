@@ -107,3 +107,10 @@ func TestChunkTitleNames_PreservesOrderAndNames(t *testing.T) {
 		t.Error("chunking altered names or order")
 	}
 }
+
+func TestTitlesMissing_CaseInsensitive(t *testing.T) {
+	titles := []Title{{TitleName: new("Zoom")}}
+	if missing := titlesMissing(titles, []string{"zoom", "ZOOM", "Nope"}); len(missing) != 1 || missing[0] != "Nope" {
+		t.Errorf("expected only Nope missing, got %v", missing)
+	}
+}

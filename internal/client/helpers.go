@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"io"
 	"net/url"
+	"strings"
 )
 
 // closeWithLog closes the given closer and logs any error using the client's logger.
@@ -24,17 +25,18 @@ func (c *Client) closeWithLog(ctx context.Context, closer io.Closer, name string
 }
 
 // titlesMissing returns the list of requested title names that are not present in the given titles slice.
+// Names are compared case-insensitively, matching the behavior of the definitions API.
 func titlesMissing(titles []Title, requested []string) []string {
 	found := make(map[string]struct{}, len(titles))
 	for _, title := range titles {
 		if title.TitleName != nil {
-			found[*title.TitleName] = struct{}{}
+			found[strings.ToLower(*title.TitleName)] = struct{}{}
 		}
 	}
 
 	var missing []string
 	for _, name := range requested {
-		if _, ok := found[name]; !ok {
+		if _, ok := found[strings.ToLower(name)]; !ok {
 			missing = append(missing, name)
 		}
 	}
