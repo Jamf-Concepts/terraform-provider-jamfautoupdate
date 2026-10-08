@@ -249,7 +249,7 @@ func TestGetTitles_ChunksLargeNameLists(t *testing.T) {
 			t.Errorf("request path too long: %d", len(r.URL.Path))
 		}
 		var resp []map[string]string
-		for _, name := range strings.Split(strings.TrimPrefix(r.URL.Path, "/"), ",") {
+		for name := range strings.SplitSeq(strings.TrimPrefix(r.URL.Path, "/"), ",") {
 			resp = append(resp, map[string]string{"title_name": name})
 		}
 		_ = json.NewEncoder(w).Encode(resp)
@@ -282,7 +282,7 @@ func TestGetTitles_ChunksLargeNameLists(t *testing.T) {
 func TestGetTitles_ChunkedMissingTitle(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		var resp []map[string]string
-		for _, name := range strings.Split(strings.TrimPrefix(r.URL.Path, "/"), ",") {
+		for name := range strings.SplitSeq(strings.TrimPrefix(r.URL.Path, "/"), ",") {
 			if name != "Missing" {
 				resp = append(resp, map[string]string{"title_name": name})
 			}
