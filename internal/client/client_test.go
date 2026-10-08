@@ -5,8 +5,12 @@ package client
 
 import (
 	"context"
+	"encoding/json"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"strings"
+	"sync/atomic"
 	"testing"
 )
 
@@ -236,3 +240,116 @@ func (m *mockLogger) LogResponse(_ context.Context, _ int, _ http.Header, _ []by
 }
 
 func (m *mockLogger) LogAuth(_ context.Context, _ string, _ map[string]any) {}
+
+func TestGetTitles_ChunksLargeNameLists(t *testing.T) {
+	var requests atomic.Int32
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		requests.Add(1)
+		if len(r.URL.Path) > maxTitleNamesLength+1 {
+			t.Errorf("request path too long: %d", len(r.URL.Path))
+		}
+		var resp []map[string]string
+		for _, name := range strings.Split(strings.TrimPrefix(r.URL.Path, "/"), ",") {
+			resp = append(resp, map[string]string{"title_name": name})
+		}
+		_ = json.NewEncoder(w).Encode(resp)
+	}))
+	defer server.Close()
+
+	var names []string
+	for i := range 600 {
+		names = append(names, fmt.Sprintf("SomeFairlyLongTitleName%d", i))
+	}
+
+	c := NewClient(server.URL, "")
+	titles, err := c.GetTitles(context.Background(), names...)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if len(titles) != len(names) {
+		t.Errorf("expected %d titles, got %d", len(names), len(titles))
+	}
+	if requests.Load() < 2 {
+		t.Errorf("expected multiple requests, got %d", requests.Load())
+	}
+	for i, title := range titles {
+		if *title.TitleName != names[i] {
+			t.Fatalf("title %d: expected %s, got %s", i, names[i], *title.TitleName)
+		}
+	}
+}
+
+func TestGetTitles_ChunkedMissingTitle(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		var resp []map[string]string
+		for _, name := range strings.Split(strings.TrimPrefix(r.URL.Path, "/"), ",") {
+			if name != "Missing" {
+				resp = append(resp, map[string]string{"title_name": name})
+			}
+		}
+		_ = json.NewEncoder(w).Encode(resp)
+	}))
+	defer server.Close()
+
+	var names []string
+	for i := range 300 {
+		names = append(names, fmt.Sprintf("SomeFairlyLongTitleName%d", i))
+	}
+	names = append(names, "Missing")
+
+	c := NewClient(server.URL, "")
+	_, err := c.GetTitles(context.Background(), names...)
+	notFound, ok := err.(*TitlesNotFoundError)
+	if !ok {
+		t.Fatalf("expected TitlesNotFoundError, got %v", err)
+	}
+	if len(notFound.MissingTitles) != 1 || notFound.MissingTitles[0] != "Missing" {
+		t.Errorf("unexpected missing titles: %v", notFound.MissingTitles)
+	}
+}
+
+func TestGetTitles_NotFoundWithEmptyArray(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusNotFound)
+		_, _ = w.Write([]byte("[]"))
+	}))
+	defer server.Close()
+
+	c := NewClient(server.URL, "")
+	_, err := c.GetTitles(context.Background(), "Nope")
+	if _, ok := err.(*TitlesNotFoundError); !ok {
+		t.Fatalf("expected TitlesNotFoundError, got %v", err)
+	}
+}
+
+func TestGetTitles_NotFoundWithoutJSON(t *testing.T) {
+	server := httptest.NewServer(http.NotFoundHandler())
+	defer server.Close()
+
+	c := NewClient(server.URL, "")
+	_, err := c.GetTitles(context.Background(), "Nope")
+	if err == nil || !strings.Contains(err.Error(), "404") {
+		t.Fatalf("expected status code error, got %v", err)
+	}
+	if _, ok := err.(*TitlesNotFoundError); ok {
+		t.Error("a non-API 404 must not be reported as missing titles")
+	}
+}
+
+func TestGetTitles_PartialMatchMultiStatus(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusMultiStatus)
+		_, _ = w.Write([]byte(testTitleJSON))
+	}))
+	defer server.Close()
+
+	c := NewClient(server.URL, "")
+	_, err := c.GetTitles(context.Background(), "GoogleChrome", "Nope")
+	notFound, ok := err.(*TitlesNotFoundError)
+	if !ok {
+		t.Fatalf("expected TitlesNotFoundError, got %v", err)
+	}
+	if len(notFound.MissingTitles) != 1 || notFound.MissingTitles[0] != "Nope" {
+		t.Errorf("unexpected missing titles: %v", notFound.MissingTitles)
+	}
+}
