@@ -57,21 +57,18 @@ resource "local_file" "title_icons" {
   filename       = "${path.module}/icons/${each.value.title_name}.png"
 }
 
-# Save multiple profiles with dynamic names for the first title
+# Collect every profile available for the first title. Any attribute ending in
+# _profile holds a base64-encoded .mobileconfig, or null if the title has none.
 locals {
   profile_types = {
-    notifications = data.jamfautoupdate_titles.specific.titles[0].notifications_profile
-    pppcp         = data.jamfautoupdate_titles.specific.titles[0].pppcp_profile
-    screen        = data.jamfautoupdate_titles.specific.titles[0].screen_recording_profile
+    for name, content in data.jamfautoupdate_titles.specific.titles[0] :
+    trimsuffix(name, "_profile") => content
+    if endswith(name, "_profile") && content != null
   }
 }
 
 resource "local_file" "first_title_profiles" {
-  for_each = {
-    for type, content in local.profile_types :
-    type => content
-    if content != null
-  }
+  for_each = local.profile_types
 
   content_base64 = each.value
   filename       = "${path.module}/profiles/first_title_${each.key}.mobileconfig"
@@ -79,10 +76,7 @@ resource "local_file" "first_title_profiles" {
 
 # Output which profiles were available and saved
 output "available_profiles" {
-  value = {
-    for type, content in local.profile_types :
-    type => content != null
-  }
+  value = keys(local.profile_types)
 }
 ```
 
@@ -111,18 +105,42 @@ Optional:
 
 Read-Only:
 
+- `accessibility_profile` (String) Base64-encoded configuration profile (.mobileconfig) granting Accessibility (TCC) access. Null if the title has no such profile.
+- `address_book_profile` (String) Base64-encoded configuration profile (.mobileconfig) granting Contacts (Address Book) access. Null if the title has no such profile.
 - `app_bundle_id` (String) The application bundle identifier
+- `apple_events_profile` (String) Base64-encoded configuration profile (.mobileconfig) granting Apple Events (automation) access. Null if the title has no such profile.
+- `bluetooth_always_profile` (String) Base64-encoded configuration profile (.mobileconfig) granting Bluetooth access. Null if the title has no such profile.
+- `calendar_profile` (String) Base64-encoded configuration profile (.mobileconfig) granting Calendar access. Null if the title has no such profile.
+- `camera_profile` (String) Base64-encoded configuration profile (.mobileconfig) granting Camera access. Null if the title has no such profile.
 - `content_filter_profile` (String) Content filter profile data
 - `extension_attribute` (String) Extension attribute data
+- `file_provider_extension_profile` (String) Base64-encoded configuration profile (.mobileconfig) granting File Provider extension access. Null if the title has no such profile.
+- `file_provider_presence_profile` (String) Base64-encoded configuration profile (.mobileconfig) granting File Provider presence access. Null if the title has no such profile.
 - `icon_base64` (String) The icon in base64 format
 - `kernel_extension_profile` (String) Kernel extension profile data
+- `listen_event_profile` (String) Base64-encoded configuration profile (.mobileconfig) granting Input Monitoring (listen event) access. Null if the title has no such profile.
 - `managed_login_items_profile` (String) Managed login items profile data
 - `maximum_os` (String) Maximum OS version supported
+- `media_library_profile` (String) Base64-encoded configuration profile (.mobileconfig) granting Media Library access. Null if the title has no such profile.
+- `microphone_profile` (String) Base64-encoded configuration profile (.mobileconfig) granting Microphone access. Null if the title has no such profile.
 - `minimum_os` (String) Minimum OS version required
 - `notifications_profile` (String) Notifications profile data
+- `photos_profile` (String) Base64-encoded configuration profile (.mobileconfig) granting Photos library access. Null if the title has no such profile.
+- `post_event_profile` (String) Base64-encoded configuration profile (.mobileconfig) granting Post Event (synthetic input) access. Null if the title has no such profile.
 - `pppcp_profile` (String) PPPCP profile data
+- `reminders_profile` (String) Base64-encoded configuration profile (.mobileconfig) granting Reminders access. Null if the title has no such profile.
 - `screen_recording_profile` (String) Screen recording profile data
+- `speech_recognition_profile` (String) Base64-encoded configuration profile (.mobileconfig) granting Speech Recognition access. Null if the title has no such profile.
 - `system_extension_profile` (String) System extension profile data
+- `system_policy_all_files_profile` (String) Base64-encoded configuration profile (.mobileconfig) granting Full Disk Access. Null if the title has no such profile.
+- `system_policy_app_bundles_profile` (String) Base64-encoded configuration profile (.mobileconfig) granting access to modify other app bundles. Null if the title has no such profile.
+- `system_policy_app_data_profile` (String) Base64-encoded configuration profile (.mobileconfig) granting access to other apps' data. Null if the title has no such profile.
+- `system_policy_desktop_folder_profile` (String) Base64-encoded configuration profile (.mobileconfig) granting Desktop folder access. Null if the title has no such profile.
+- `system_policy_documents_folder_profile` (String) Base64-encoded configuration profile (.mobileconfig) granting Documents folder access. Null if the title has no such profile.
+- `system_policy_downloads_folder_profile` (String) Base64-encoded configuration profile (.mobileconfig) granting Downloads folder access. Null if the title has no such profile.
+- `system_policy_network_volumes_profile` (String) Base64-encoded configuration profile (.mobileconfig) granting network volumes access. Null if the title has no such profile.
+- `system_policy_removable_volumes_profile` (String) Base64-encoded configuration profile (.mobileconfig) granting removable volumes access. Null if the title has no such profile.
+- `system_policy_sys_admin_files_profile` (String) Base64-encoded configuration profile (.mobileconfig) granting administrator files access. Null if the title has no such profile.
 - `title_description` (String) The description of the title
 - `title_display_name` (String) The display name of the title
 - `title_name` (String) The name of the title

@@ -116,6 +116,102 @@ func (d *TitlesDataSource) Schema(ctx context.Context, req datasource.SchemaRequ
 							Computed:            true,
 							MarkdownDescription: "System extension profile data",
 						},
+						"accessibility_profile": schema.StringAttribute{
+							Computed:            true,
+							MarkdownDescription: "Base64-encoded configuration profile (.mobileconfig) granting Accessibility (TCC) access. Null if the title has no such profile.",
+						},
+						"address_book_profile": schema.StringAttribute{
+							Computed:            true,
+							MarkdownDescription: "Base64-encoded configuration profile (.mobileconfig) granting Contacts (Address Book) access. Null if the title has no such profile.",
+						},
+						"apple_events_profile": schema.StringAttribute{
+							Computed:            true,
+							MarkdownDescription: "Base64-encoded configuration profile (.mobileconfig) granting Apple Events (automation) access. Null if the title has no such profile.",
+						},
+						"bluetooth_always_profile": schema.StringAttribute{
+							Computed:            true,
+							MarkdownDescription: "Base64-encoded configuration profile (.mobileconfig) granting Bluetooth access. Null if the title has no such profile.",
+						},
+						"calendar_profile": schema.StringAttribute{
+							Computed:            true,
+							MarkdownDescription: "Base64-encoded configuration profile (.mobileconfig) granting Calendar access. Null if the title has no such profile.",
+						},
+						"camera_profile": schema.StringAttribute{
+							Computed:            true,
+							MarkdownDescription: "Base64-encoded configuration profile (.mobileconfig) granting Camera access. Null if the title has no such profile.",
+						},
+						"file_provider_extension_profile": schema.StringAttribute{
+							Computed:            true,
+							MarkdownDescription: "Base64-encoded configuration profile (.mobileconfig) granting File Provider extension access. Null if the title has no such profile.",
+						},
+						"file_provider_presence_profile": schema.StringAttribute{
+							Computed:            true,
+							MarkdownDescription: "Base64-encoded configuration profile (.mobileconfig) granting File Provider presence access. Null if the title has no such profile.",
+						},
+						"listen_event_profile": schema.StringAttribute{
+							Computed:            true,
+							MarkdownDescription: "Base64-encoded configuration profile (.mobileconfig) granting Input Monitoring (listen event) access. Null if the title has no such profile.",
+						},
+						"media_library_profile": schema.StringAttribute{
+							Computed:            true,
+							MarkdownDescription: "Base64-encoded configuration profile (.mobileconfig) granting Media Library access. Null if the title has no such profile.",
+						},
+						"microphone_profile": schema.StringAttribute{
+							Computed:            true,
+							MarkdownDescription: "Base64-encoded configuration profile (.mobileconfig) granting Microphone access. Null if the title has no such profile.",
+						},
+						"photos_profile": schema.StringAttribute{
+							Computed:            true,
+							MarkdownDescription: "Base64-encoded configuration profile (.mobileconfig) granting Photos library access. Null if the title has no such profile.",
+						},
+						"post_event_profile": schema.StringAttribute{
+							Computed:            true,
+							MarkdownDescription: "Base64-encoded configuration profile (.mobileconfig) granting Post Event (synthetic input) access. Null if the title has no such profile.",
+						},
+						"reminders_profile": schema.StringAttribute{
+							Computed:            true,
+							MarkdownDescription: "Base64-encoded configuration profile (.mobileconfig) granting Reminders access. Null if the title has no such profile.",
+						},
+						"speech_recognition_profile": schema.StringAttribute{
+							Computed:            true,
+							MarkdownDescription: "Base64-encoded configuration profile (.mobileconfig) granting Speech Recognition access. Null if the title has no such profile.",
+						},
+						"system_policy_all_files_profile": schema.StringAttribute{
+							Computed:            true,
+							MarkdownDescription: "Base64-encoded configuration profile (.mobileconfig) granting Full Disk Access. Null if the title has no such profile.",
+						},
+						"system_policy_app_bundles_profile": schema.StringAttribute{
+							Computed:            true,
+							MarkdownDescription: "Base64-encoded configuration profile (.mobileconfig) granting access to modify other app bundles. Null if the title has no such profile.",
+						},
+						"system_policy_app_data_profile": schema.StringAttribute{
+							Computed:            true,
+							MarkdownDescription: "Base64-encoded configuration profile (.mobileconfig) granting access to other apps' data. Null if the title has no such profile.",
+						},
+						"system_policy_desktop_folder_profile": schema.StringAttribute{
+							Computed:            true,
+							MarkdownDescription: "Base64-encoded configuration profile (.mobileconfig) granting Desktop folder access. Null if the title has no such profile.",
+						},
+						"system_policy_documents_folder_profile": schema.StringAttribute{
+							Computed:            true,
+							MarkdownDescription: "Base64-encoded configuration profile (.mobileconfig) granting Documents folder access. Null if the title has no such profile.",
+						},
+						"system_policy_downloads_folder_profile": schema.StringAttribute{
+							Computed:            true,
+							MarkdownDescription: "Base64-encoded configuration profile (.mobileconfig) granting Downloads folder access. Null if the title has no such profile.",
+						},
+						"system_policy_network_volumes_profile": schema.StringAttribute{
+							Computed:            true,
+							MarkdownDescription: "Base64-encoded configuration profile (.mobileconfig) granting network volumes access. Null if the title has no such profile.",
+						},
+						"system_policy_removable_volumes_profile": schema.StringAttribute{
+							Computed:            true,
+							MarkdownDescription: "Base64-encoded configuration profile (.mobileconfig) granting removable volumes access. Null if the title has no such profile.",
+						},
+						"system_policy_sys_admin_files_profile": schema.StringAttribute{
+							Computed:            true,
+							MarkdownDescription: "Base64-encoded configuration profile (.mobileconfig) granting administrator files access. Null if the title has no such profile.",
+						},
 						"app_bundle_id": schema.StringAttribute{
 							Computed:            true,
 							MarkdownDescription: "The application bundle identifier",

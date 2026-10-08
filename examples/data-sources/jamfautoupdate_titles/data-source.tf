@@ -42,21 +42,18 @@ resource "local_file" "title_icons" {
   filename       = "${path.module}/icons/${each.value.title_name}.png"
 }
 
-# Save multiple profiles with dynamic names for the first title
+# Collect every profile available for the first title. Any attribute ending in
+# _profile holds a base64-encoded .mobileconfig, or null if the title has none.
 locals {
   profile_types = {
-    notifications = data.jamfautoupdate_titles.specific.titles[0].notifications_profile
-    pppcp         = data.jamfautoupdate_titles.specific.titles[0].pppcp_profile
-    screen        = data.jamfautoupdate_titles.specific.titles[0].screen_recording_profile
+    for name, content in data.jamfautoupdate_titles.specific.titles[0] :
+    trimsuffix(name, "_profile") => content
+    if endswith(name, "_profile") && content != null
   }
 }
 
 resource "local_file" "first_title_profiles" {
-  for_each = {
-    for type, content in local.profile_types :
-    type => content
-    if content != null
-  }
+  for_each = local.profile_types
 
   content_base64 = each.value
   filename       = "${path.module}/profiles/first_title_${each.key}.mobileconfig"
@@ -64,8 +61,5 @@ resource "local_file" "first_title_profiles" {
 
 # Output which profiles were available and saved
 output "available_profiles" {
-  value = {
-    for type, content in local.profile_types :
-    type => content != null
-  }
+  value = keys(local.profile_types)
 }
